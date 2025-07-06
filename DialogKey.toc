@@ -1,0 +1,10 @@
+## Interface: 60200
+## Title: DialogKey
+## Notes: Lets you set a key that also confirms loot/purchase dialogs, accept/complete quests, etc. Spacebar to complete quests? Easy!
+## Author: Foxthorn
+## Version: 1.0
+## SavedVariables: DialogKeyDB
+## OptionalDeps: Ace3
+## X-Embeds: Ace3
+embeds.xml
+core.lua
