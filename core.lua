@@ -1,5 +1,13 @@
 DialogKey = LibStub("AceAddon-3.0"):NewAddon("DialogKey", "AceConsole-3.0", "AceTimer-3.0")
 
+-- Fallback for older clients without Frame:SetPropagateKeyboardInput
+local frameMeta = getmetatable(CreateFrame("Frame")).__index
+if not frameMeta.SetPropagateKeyboardInput then
+    function frameMeta:SetPropagateKeyboardInput(enable)
+        self.__dkPropagate = enable
+    end
+end
+
 local defaults = {							-- Default settings
 	global = {
 		keys = {
@@ -30,11 +38,17 @@ function DialogKey:OnInitialize()			-- Runs on addon initialization
 	self:RegisterChatCommand("dkey", "ChatCommand")
 	self:RegisterChatCommand("dialogkey", "ChatCommand")
 	
-	self.frame = CreateFrame("Frame", "DialogKeyFrame", UIParent)
-	self.frame:EnableKeyboard(true)
-	self.frame:SetPropagateKeyboardInput(true)
-	self.frame:SetFrameStrata("TOOLTIP") -- Ensure we receive keyboard events first
-	self.frame:SetScript("OnKeyDown", self.HandleKey)
+        self.frame = CreateFrame("Frame", "DialogKeyFrame", UIParent)
+        self.frame:EnableKeyboard(true)
+        self.frame:SetPropagateKeyboardInput(true)
+        self.frame:SetFrameStrata("TOOLTIP") -- Ensure we receive keyboard events first
+        self.origUIParentKeyDown = UIParent:GetScript("OnKeyDown")
+        self.frame:SetScript("OnKeyDown", function(_, key)
+                self:HandleKey(key)
+                if self.frame.__dkPropagate ~= false and self.origUIParentKeyDown then
+                        self.origUIParentKeyDown(UIParent, key)
+                end
+        end)
 	
 	self.glowFrame = CreateFrame("Frame", "DialogKeyGlow", UIParent)
 	self.glowFrame:SetPoint("CENTER", 0, 0)
@@ -54,7 +68,7 @@ function DialogKey:ChatCommand(input)		-- Chat command handler
 	args = {strsplit(" ", input:trim())}
 	
 	if args[1] == "v" or args[1] == "ver" or args[1] == "version" then
-		print(GAME_VERSION_LABEL..": "..GetAddOnMetadata("DialogKey","Version"))
+               print(GAME_VERSION_LABEL..": "..GetAddOnMetadata("DialogueKeyEpoch","Version"))
 	elseif args[1] == "add" or args[1] == "a" or args[1] == "watch" then
 		if args[2] then
 			self:WatchFrame(args[2])
@@ -81,9 +95,9 @@ function DialogKey:CreateOptionsFrame()		-- Constructs the options frame
 	title:SetText("DialogKey")
 	title:SetPoint("TOPLEFT", 16, -16)
 	
-	local subtitle = self.options:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-	subtitle:SetFont("Fonts\\FRIZQT__.TTF", 10)
-	subtitle:SetText("Version " .. GetAddOnMetadata("DialogKey","Version"))
+       local subtitle = self.options:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+       subtitle:SetFont("Fonts\\FRIZQT__.TTF", 10)
+       subtitle:SetText("Version " .. GetAddOnMetadata("DialogueKeyEpoch","Version"))
 	subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 4, -8)
 	
 	self.options.keybindButtons = {}
@@ -344,6 +358,12 @@ function DialogKey:HandleKey(key)			-- Run for every key hit ever; runs ClickBut
 		DialogKey:HandleKeybind(key)
 		return
 	end
+        -- Number keys 1-9 select corresponding gossip or quest options
+        if key:match("^[1-9]$") then
+                local success = DialogKey:ClickIndexedOption(tonumber(key))
+                self:SetPropagateKeyboardInput(not success)
+                return
+        end
 	
 	if key == DialogKey.db.global.keys[1] or key == DialogKey.db.global.keys[2] then
 		local success = DialogKey:ClickButtons()
@@ -372,6 +392,16 @@ function DialogKey:ClickButtons()			-- Main function to click on dialog buttons 
 		end
 	end
 end
+function DialogKey:ClickIndexedOption(index)
+        if GetCurrentKeyBoardFocus() then return end
+        local btn = _G["GossipTitleButton"..index] or _G["QuestTitleButton"..index]
+        if btn and btn:IsVisible() then
+                self:Glow(btn, "click")
+                btn:Click()
+                return true
+        end
+end
+
 
 function DialogKey:ClickButton(frame)		-- Helper of ClickButtons, attempts to click the given button
 	if frame:IsVisible() and (not self.db.global.ignoreDisabledButtons or (self.db.global.ignoreDisabledButtons and frame:IsEnabled())) then
@@ -398,8 +428,16 @@ function DialogKey:Glow(frame, mode)		-- Show the glow frame over a frame. Mode 
 		self.glowFrame:SetAllPoints(frame)
 		self.glowFrame.tex:SetTexture(1,0,0,0.5)
 		self.glowFrame:Show()
-		self.glowFrame:SetAlpha(1)
-	end
+                self.glowFrame:SetAlpha(1)
+        end
+end
+
+function DialogKey:SetPropagateKeyboardInput(enable)
+        if self.frame.SetPropagateKeyboardInput then
+                self.frame:SetPropagateKeyboardInput(enable)
+        else
+                self.frame.__dkPropagate = enable
+        end
 end
 
 -- Binding mode --
