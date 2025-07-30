@@ -1,5 +1,5 @@
 ## Interface: 30300
-## Title: DialogKey
+## Title: DialogKeyEpoch
 ## Notes: Lets you set a key that also confirms loot/purchase dialogs, accept/complete quests, etc. Spacebar to complete quests? Easy!
 ## Author: Foxthorn
 ## Version: 1.0
