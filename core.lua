@@ -68,7 +68,7 @@ function DialogKey:ChatCommand(input)		-- Chat command handler
 	args = {strsplit(" ", input:trim())}
 	
 	if args[1] == "v" or args[1] == "ver" or args[1] == "version" then
-               print(GAME_VERSION_LABEL..": "..GetAddOnMetadata("DialogKeyEpoch","Version"))
+               print(GAME_VERSION_LABEL..": "..GetAddOnMetadata("DialogueKeyEpoch","Version"))
 	elseif args[1] == "add" or args[1] == "a" or args[1] == "watch" then
 		if args[2] then
 			self:WatchFrame(args[2])
@@ -97,7 +97,7 @@ function DialogKey:CreateOptionsFrame()		-- Constructs the options frame
 	
        local subtitle = self.options:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
        subtitle:SetFont("Fonts\\FRIZQT__.TTF", 10)
-       subtitle:SetText("Version " .. GetAddOnMetadata("DialogKeyEpoch","Version"))
+       subtitle:SetText("Version " .. GetAddOnMetadata("DialogueKeyEpoch","Version"))
 	subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 4, -8)
 	
 	self.options.keybindButtons = {}
