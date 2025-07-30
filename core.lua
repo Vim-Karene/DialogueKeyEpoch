@@ -358,6 +358,12 @@ function DialogKey:HandleKey(key)			-- Run for every key hit ever; runs ClickBut
 		DialogKey:HandleKeybind(key)
 		return
 	end
+        -- Number keys 1-9 select corresponding gossip or quest options
+        if key:match("^[1-9]$") then
+                local success = DialogKey:ClickIndexedOption(tonumber(key))
+                self:SetPropagateKeyboardInput(not success)
+                return
+        end
 	
 	if key == DialogKey.db.global.keys[1] or key == DialogKey.db.global.keys[2] then
 		local success = DialogKey:ClickButtons()
@@ -386,6 +392,16 @@ function DialogKey:ClickButtons()			-- Main function to click on dialog buttons 
 		end
 	end
 end
+function DialogKey:ClickIndexedOption(index)
+        if GetCurrentKeyBoardFocus() then return end
+        local btn = _G["GossipTitleButton"..index] or _G["QuestTitleButton"..index]
+        if btn and btn:IsVisible() then
+                self:Glow(btn, "click")
+                btn:Click()
+                return true
+        end
+end
+
 
 function DialogKey:ClickButton(frame)		-- Helper of ClickButtons, attempts to click the given button
 	if frame:IsVisible() and (not self.db.global.ignoreDisabledButtons or (self.db.global.ignoreDisabledButtons and frame:IsEnabled())) then
