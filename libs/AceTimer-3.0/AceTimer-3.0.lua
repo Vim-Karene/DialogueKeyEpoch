@@ -27,7 +27,26 @@ local activeTimers = AceTimer.activeTimers -- Upvalue our private data
 -- Lua APIs
 local type, unpack, next, error, select = type, unpack, next, error, select
 -- WoW APIs
-local GetTime, C_TimerAfter = GetTime, C_Timer.After
+local GetTime, C_TimerAfter = GetTime, C_Timer and C_Timer.After
+
+-- Provide an OnUpdate based fallback for older clients without C_Timer
+if not C_TimerAfter then
+    local waitFrame = CreateFrame("Frame")
+    local waitTable = {}
+    waitFrame:SetScript("OnUpdate", function(self)
+        local now = GetTime()
+        for i = #waitTable, 1, -1 do
+            local t = waitTable[i]
+            if now >= t.time then
+                t.func()
+                table.remove(waitTable, i)
+            end
+        end
+    end)
+    C_TimerAfter = function(delay, func)
+        table.insert(waitTable, {time = GetTime() + delay, func = func})
+    end
+end
 
 local function new(self, loop, func, delay, ...)
 	if delay < 0.01 then

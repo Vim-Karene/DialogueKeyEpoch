@@ -1,5 +1,13 @@
 DialogKey = LibStub("AceAddon-3.0"):NewAddon("DialogKey", "AceConsole-3.0", "AceTimer-3.0")
 
+-- Fallback for older clients without Frame:SetPropagateKeyboardInput
+local frameMeta = getmetatable(CreateFrame("Frame")).__index
+if not frameMeta.SetPropagateKeyboardInput then
+    function frameMeta:SetPropagateKeyboardInput(enable)
+        self.__dkPropagate = enable
+    end
+end
+
 local defaults = {							-- Default settings
 	global = {
 		keys = {
@@ -30,11 +38,17 @@ function DialogKey:OnInitialize()			-- Runs on addon initialization
 	self:RegisterChatCommand("dkey", "ChatCommand")
 	self:RegisterChatCommand("dialogkey", "ChatCommand")
 	
-	self.frame = CreateFrame("Frame", "DialogKeyFrame", UIParent)
-	self.frame:EnableKeyboard(true)
-	self.frame:SetPropagateKeyboardInput(true)
-	self.frame:SetFrameStrata("TOOLTIP") -- Ensure we receive keyboard events first
-	self.frame:SetScript("OnKeyDown", self.HandleKey)
+        self.frame = CreateFrame("Frame", "DialogKeyFrame", UIParent)
+        self.frame:EnableKeyboard(true)
+        self.frame:SetPropagateKeyboardInput(true)
+        self.frame:SetFrameStrata("TOOLTIP") -- Ensure we receive keyboard events first
+        self.origUIParentKeyDown = UIParent:GetScript("OnKeyDown")
+        self.frame:SetScript("OnKeyDown", function(_, key)
+                self:HandleKey(key)
+                if self.frame.__dkPropagate ~= false and self.origUIParentKeyDown then
+                        self.origUIParentKeyDown(UIParent, key)
+                end
+        end)
 	
 	self.glowFrame = CreateFrame("Frame", "DialogKeyGlow", UIParent)
 	self.glowFrame:SetPoint("CENTER", 0, 0)
@@ -398,8 +412,16 @@ function DialogKey:Glow(frame, mode)		-- Show the glow frame over a frame. Mode 
 		self.glowFrame:SetAllPoints(frame)
 		self.glowFrame.tex:SetTexture(1,0,0,0.5)
 		self.glowFrame:Show()
-		self.glowFrame:SetAlpha(1)
-	end
+                self.glowFrame:SetAlpha(1)
+        end
+end
+
+function DialogKey:SetPropagateKeyboardInput(enable)
+        if self.frame.SetPropagateKeyboardInput then
+                self.frame:SetPropagateKeyboardInput(enable)
+        else
+                self.frame.__dkPropagate = enable
+        end
 end
 
 -- Binding mode --
