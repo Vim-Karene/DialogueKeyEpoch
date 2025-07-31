@@ -337,20 +337,40 @@ function DialogKey:UnwatchFrame(name)		-- Remove given frame from the watch list
 	
 	self:UpdateAdditionalFrames()
 end
-
 -- Primary functions --
-function DialogKey:HandleKey(key)			-- Run for every key hit ever; runs ClickButtons() if it's the bound one
-	if DialogKey.keybindMode then
-		DialogKey:HandleKeybind(key)
-		return
-	end
-	
-	if key == DialogKey.db.global.keys[1] or key == DialogKey.db.global.keys[2] then
-		local success = DialogKey:ClickButtons()
-		self:SetPropagateKeyboardInput(not success)
-	else
-		self:SetPropagateKeyboardInput(true)
-	end
+
+function DialogKey:HandleKey(key)                       -- Run for every key hit ever; runs ClickButtons() if it's the bound one
+        if DialogKey.keybindMode then
+                DialogKey:HandleKeybind(key)
+                return
+        end
+
+        -- Handle numeric keys (1-9) for gossip dialog options
+        local numKey = tonumber(key)
+        if not numKey then
+                local npMatch = string.match(key, "NUMPAD(%d)")
+                if npMatch then
+                        numKey = tonumber(npMatch)
+                end
+        end
+        if numKey and numKey >= 1 and numKey <= 9 then
+                if GossipFrame and GossipFrame:IsShown() then
+                        local button = _G["GossipTitleButton" .. numKey]
+                        if button and button:IsVisible() then
+                                self:Glow(button, "click")
+                                button:Click()
+                                self:SetPropagateKeyboardInput(false)
+                                return
+                        end
+                end
+        end
+
+        if key == DialogKey.db.global.keys[1] or key == DialogKey.db.global.keys[2] then
+                local success = DialogKey:ClickButtons()
+                self:SetPropagateKeyboardInput(not success)
+        else
+                self:SetPropagateKeyboardInput(true)
+        end
 end
 
 function DialogKey:ClickButtons()			-- Main function to click on dialog buttons when the bound key is pressed
